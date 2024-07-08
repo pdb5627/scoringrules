@@ -238,3 +238,62 @@ def vrenergy_score(
     return energy.vrnrg(
         observations, forecasts, obs_weights, fct_weights, backend=backend
     )
+
+
+def weenergy_score(
+    observations: "Array",
+    forecasts: "Array",
+    forecast_weights: "Array",
+    /,
+    m_axis: int = -2,
+    v_axis: int = -1,
+    *,
+    backend: "Backend" = None,
+) -> "Array":
+    r"""Compute the Energy Score (ES) for a finite multivariate ensemble where the ensemble members are unequally weighted.
+
+    The Energy Score for a weighted ensemble is a multivariate scoring rule expressed as
+
+    $$\text{ES}(F_{ens}, \mathbf{y})= \frac{1}{\sum_{m=1}^M w_m} \sum_{m=1}^{M} w_m \| \mathbf{x}_{m} -
+      \mathbf{y} \| - \frac{1}{2 \left(\sum_{m=1}^M w_m\right)^{2}} \sum_{m=1}^{M} \sum_{j=1}^{M} w_m w_j \| \mathbf{x}_{m} - \mathbf{x}_{j} \| $$
+
+    where $\mathbf{X}$ and $\mathbf{X'}$ are independent samples from $F$
+    and $||\cdot||$ is the euclidean norm over the input dimensions (the variables).
+
+
+    Parameters
+    ----------
+    observations: ArrayLike of shape (...,D)
+        The observed values, where the variables dimension is by default the last axis.
+    forecasts: ArrayLike of shape (..., M, D)
+        The predicted forecast ensemble, where the ensemble dimension is by default
+        represented by the second last axis and the variables dimension by the last axis.
+    forecast_weights: ArrayLike of shape (..., M)
+        The weights for the predicted forecast ensemble, where the ensemble dimension is
+        by default the last axis.
+    m_axis: int
+        The axis corresponding to the ensemble dimension. Defaults to -2.
+    v_axis: int or tuple(int)
+        The axis corresponding to the variables dimension. Defaults to -1.
+    backend: str
+        The name of the backend used for computations. Defaults to 'numba' if available, else 'numpy'.
+
+    Returns
+    -------
+    weenergy_score: ArrayLike of shape (...)
+        The computed weighted ensemble Energy Score.
+    """
+    backend = backend if backend is not None else backends._active
+    observations, forecasts, forecast_weights = multivariate_array_check(
+        observations,
+        forecasts,
+        m_axis,
+        v_axis,
+        backend=backend,
+        fct_wt=forecast_weights,
+    )
+
+    if backend == "numba":
+        return energy._weenergy_score_gufunc(observations, forecasts, forecast_weights)
+
+    return energy.wenrg(observations, forecasts, forecast_weights, backend=backend)

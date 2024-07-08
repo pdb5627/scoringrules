@@ -89,3 +89,31 @@ def _vrenergy_score_gufunc(
     wabs_y = np.linalg.norm(obs) * ow
 
     out[0] = e_1 / M - 0.5 * e_2 / (M**2) + (wabs_x - wabs_y) * (wbar - ow)
+
+
+@guvectorize(
+    [
+        "void(float32[:], float32[:,:], float32[:], float32[:])",
+        "void(float64[:], float64[:,:], float64[:], float64[:])",
+    ],
+    "(d),(m,d),(m)->()",
+)
+def _weenergy_score_gufunc(
+    obs: np.ndarray,
+    fct: np.ndarray,
+    fct_wt: np.ndarray,
+    out: np.ndarray,
+):
+    """Compute the Energy Score for a finite ensemble."""
+    M = fct.shape[0]
+
+    e_1 = 0.0
+    e_2 = 0.0
+    w_T = 0.0
+    for i in range(M):
+        w_T += fct_wt[i]
+        e_1 += fct_wt[i] * float(np.linalg.norm(fct[i] - obs))
+        for j in range(M):
+            e_2 += fct_wt[i] * fct_wt[j] * float(np.linalg.norm(fct[i] - fct[j]))
+
+    out[0] = e_1 / w_T - 0.5 / (w_T**2) * e_2

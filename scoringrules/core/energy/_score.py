@@ -73,3 +73,23 @@ def vrenergy_score(
     rhobar = B.sum(B.norm(fct, -1) * fw, -1) / M  # (...)
     E_3 = (rhobar - B.norm(obs, -1) * ow) * (wbar - ow)  # (...)
     return E_1 - 0.5 * E_2 + E_3
+
+
+def weenergy_score(
+    obs: "Array",  # (... D)
+    fct: "Array",  # (... M D)
+    fct_wt: "Array",  # (... M)
+    backend: "Backend" = None,
+) -> "Array":
+    """Compute the weighted ensemble energy score based on a finite ensemble."""
+    B = backends.active if backend is None else backends[backend]
+
+    w_T = B.sum(fct_wt, -1)
+
+    err_norm = fct_wt * B.norm(fct - B.expand_dims(obs, -2), -1)
+    E_1 = B.sum(err_norm, -1) / w_T
+
+    spread_norm = B.norm(B.expand_dims(fct, -3) - B.expand_dims(fct, -2), -1)
+    spread_norm *= B.expand_dims(fct_wt, -2) * B.expand_dims(fct_wt, -1)
+    E_2 = B.sum(spread_norm, (-2, -1)) / (w_T**2)
+    return E_1 - 0.5 * E_2

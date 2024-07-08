@@ -8,6 +8,7 @@ from scoringrules._crps import (
     crps_lognormal,
     crps_normal,
     crps_quantile,
+    crps_w_ensemble,
     owcrps_ensemble,
     twcrps_ensemble,
     vrcrps_ensemble,
@@ -17,6 +18,7 @@ from scoringrules._energy import (
     owenergy_score,
     twenergy_score,
     vrenergy_score,
+    weenergy_score,
 )
 from scoringrules._error_spread import error_spread_score
 from scoringrules._interval import interval_score, weighted_interval_score
@@ -50,6 +52,7 @@ __all__ = [
     "energy_score",
     "owenergy_score",
     "twenergy_score",
+    "weenergy_score",
     "vrenergy_score",
     "variogram_score",
     "owvariogram_score",
