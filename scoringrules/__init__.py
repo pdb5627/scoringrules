@@ -12,7 +12,6 @@ from scoringrules._crps import (
     owcrps_ensemble,
     twcrps_ensemble,
     vrcrps_ensemble,
-    crps_w_ensemble,
 )
 from scoringrules._energy import (
     energy_score,
@@ -29,6 +28,7 @@ from scoringrules._variogram import (
     twvariogram_score,
     variogram_score,
     vrvariogram_score,
+    wevariogram_score,
 )
 from scoringrules.backend import backends, register_backend
 
@@ -60,6 +60,7 @@ __all__ = [
     "owvariogram_score",
     "twvariogram_score",
     "vrvariogram_score",
+    "wevariogram_score",
     "interval_score",
     "weighted_interval_score",
 ]

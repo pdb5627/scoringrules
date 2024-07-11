@@ -91,3 +91,29 @@ def _vrvariogram_score_gufunc(obs, fct, p, ow, fw, out):
             e_3_y += (rho1) ** 2 * ow
 
     out[0] = e_1 / M - 0.5 * e_2 / (M**2) + (e_3_x - e_3_y) * (wbar - ow)
+
+
+@guvectorize(
+    [
+        "void(float32[:], float32[:,:], float32[:], float32, float32[:])",
+        "void(float64[:], float64[:,:], float64[:], float64, float64[:])",
+    ],
+    "(d),(m,d),(m),()->()",
+)
+def _wevariogram_score_gufunc(obs, fct, fct_wt, p, out):
+    M = fct.shape[-2]
+    D = fct.shape[-1]
+
+    w_T = 0.0
+    for m in range(M):
+        w_T += fct_wt[m]
+
+    out[0] = 0.0
+    for i in range(D):
+        for j in range(D):
+            vfct = 0.0
+            for m in range(M):
+                vfct += fct_wt[m] * abs(fct[m, i] - fct[m, j]) ** p
+            vfct = vfct / w_T
+            vobs = abs(obs[i] - obs[j]) ** p
+            out[0] += (vobs - vfct) ** 2

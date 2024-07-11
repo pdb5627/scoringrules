@@ -249,3 +249,67 @@ def vrvariogram_score(
     return variogram.vrvs(
         observations, forecasts, obs_weights, fct_weights, p=p, backend=backend
     )
+
+
+def wevariogram_score(
+    observations: "Array",
+    forecasts: "Array",
+    forecast_weights: "Array",
+    /,
+    m_axis: int = -2,
+    v_axis: int = -1,
+    *,
+    p: float = 1.0,
+    backend: "Backend" = None,
+) -> "Array":
+    r"""Compute the Variogram Score for a finite multivariate ensemble where the ensemble members are unequally weighted.
+
+    For a weighted $D$-variate ensemble the Variogram Score
+    of order $p$ is expressed as
+
+    $$\text{VS}_{p}(F_{ens}, \mathbf{y})= \frac{1}{\sum_{m=1}^M w_m} \sum_{i=1}^{D} \sum_{j=1}^{D}
+    \left( \sum_{m=1}^{M} w_m | x_{m,i} - x_{m,j} |^{p} - | y_{i} - y_{j} |^{p} \right)^{2}. $$
+
+    where $\mathbf{X}$ and $\mathbf{X'}$ are independently sampled ensembles from from $F$.
+
+
+    Parameters
+    ----------
+    observations: ArrayLike of shape (...,D)
+        The observed values, where the variables dimension is by default the last axis.
+    forecasts: ArrayLike of shape (..., M, D)
+        The predicted forecast ensemble, where the ensemble dimension is by default
+        represented by the second last axis and the variables dimension by the last axis.
+    forecast_weights: ArrayLike of shape (..., M)
+        The weights for the predicted forecast ensemble, where the ensemble dimension is
+        by default the last axis.
+    p: float
+        The order of the Variogram Score. Typical values are 0.5, 1.0 or 2.0. Defaults to 1.0.
+    m_axis: int
+        The axis corresponding to the ensemble dimension. Defaults to -2.
+    v_axis: int
+        The axis corresponding to the variables dimension. Defaults to -1.
+    backend: str
+        The name of the backend used for computations. Defaults to 'numba' if available, else 'numpy'.
+
+    Returns
+    -------
+    variogram_score: Array
+        The computed Variogram Score.
+    """
+    backend = backend if backend is not None else backends._active
+    observations, forecasts, forecast_weights = multivariate_array_check(
+        observations,
+        forecasts,
+        m_axis,
+        v_axis,
+        backend=backend,
+        fct_wt=forecast_weights,
+    )
+
+    if backend == "numba":
+        return variogram._wevariogram_score_gufunc(
+            observations, forecasts, forecast_weights, p
+        )
+
+    return variogram.wevs(observations, forecasts, forecast_weights, p, backend=backend)

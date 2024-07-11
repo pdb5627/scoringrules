@@ -93,3 +93,23 @@ def vrvariogram_score(
     E_3 *= wbar - ow  # (...)
 
     return E_1 - 0.5 * E_2 + E_3
+
+
+def wevariogram_score(
+    obs: "Array",  # (... D)
+    fct: "Array",  # (... M D)
+    fct_wt: "Array",  # (... M)
+    p: float = 1,
+    backend: "Backend" = None,
+) -> "Array":
+    """Compute the weighted Variogram Score for a multivariate finite ensemble."""
+    B = backends.active if backend is None else backends[backend]
+
+    w_T = B.expand_dims(B.sum(fct_wt, -1), (-2, -1))  # (... M D D)
+
+    fct_diff = B.expand_dims(fct, -2) - B.expand_dims(fct, -1)  # (... M D D)
+    fct_diff *= B.expand_dims(fct_wt, (-2, -1))
+    vfct = B.sum(B.abs(fct_diff) ** p, axis=-3) / w_T  # (... D D)
+    obs_diff = B.expand_dims(obs, -2) - B.expand_dims(obs, -1)  # (... D D)
+    vobs = B.abs(obs_diff) ** p  # (... D D)
+    return B.sum((vobs - vfct) ** 2, axis=(-2, -1))  # (...)
