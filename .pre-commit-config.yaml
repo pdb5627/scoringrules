@@ -22,7 +22,7 @@ repos:
       - id: ruff
         name: ruff
         entry: ruff
-        args: ["--exit-non-zero-on-fix"]
+        args: ["check", "--exit-non-zero-on-fix"]
         require_serial: true
         language: system
         types: [python]
