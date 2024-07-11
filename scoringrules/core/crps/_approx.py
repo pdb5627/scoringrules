@@ -114,3 +114,23 @@ def vr_ensemble(
     e_3 = B.mean(B.abs(fct) * fw, axis=-1) - B.abs(obs) * ow
     e_3 *= B.mean(fw, axis=1) - ow
     return e_1 - 0.5 * e_2 + e_3
+
+
+def w_ensemble(
+    obs: "Array",
+    fct: "Array",
+    fct_wt: "Array",
+    backend: "Backend" = None,
+) -> "Array":
+    """Vertically Re-scaled CRPS estimator based on the energy form."""
+    B = backends.active if backend is None else backends[backend]
+
+    w_T = B.sum(fct_wt, -1)
+
+    abs_err = B.abs(B.expand_dims(obs, axis=-1) - fct)
+    e_1 = B.sum(fct_wt * abs_err, axis=-1) / w_T
+    spread_abs = B.abs(B.expand_dims(fct, axis=-1) - B.expand_dims(fct, axis=-2))
+    spread_abs *= B.expand_dims(fct_wt, axis=-2) * B.expand_dims(fct_wt, axis=-1)
+    e_2 = B.sum(spread_abs, axis=(-1, -2)) / (w_T**2)
+
+    return e_1 - 0.5 * e_2

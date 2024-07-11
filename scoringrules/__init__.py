@@ -12,6 +12,7 @@ from scoringrules._crps import (
     owcrps_ensemble,
     twcrps_ensemble,
     vrcrps_ensemble,
+    crps_w_ensemble,
 )
 from scoringrules._energy import (
     energy_score,
@@ -46,6 +47,7 @@ __all__ = [
     "owcrps_ensemble",
     "twcrps_ensemble",
     "vrcrps_ensemble",
+    "crps_w_ensemble",
     "logs_normal",
     "brier_score",
     "error_spread_score",

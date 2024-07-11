@@ -298,6 +298,40 @@ def _vrcrps_ensemble_nrg_gufunc(
     out[0] = e_1 / M - 0.5 * e_2 / (M**2) + (wabs_x - wabs_y) * (wbar - ow)
 
 
+@guvectorize(
+    [
+        "void(float32[:], float32[:], float32[:], float32[:])",
+        "void(float64[:], float64[:], float64[:], float64[:])",
+    ],
+    "(),(n),(n)->()",
+)
+def _wecrps_ensemble_nrg_gufunc(
+    obs: np.ndarray,
+    fct: np.ndarray,
+    fct_wt: np.ndarray,
+    out: np.ndarray,
+):
+    """Probability-weighted ensemble CRPS estimator based on the energy form."""
+    obs = obs[0]
+    M = fct.shape[-1]
+
+    if np.isnan(obs):
+        out[0] = np.nan
+        return
+
+    e_1 = 0.0
+    e_2 = 0.0
+    w_T = 0.0
+
+    for i, x_i in enumerate(fct):
+        w_T += fct_wt[i]
+        e_1 += fct_wt[i] * abs(x_i - obs)
+        for j, x_j in enumerate(fct):
+            e_2 += fct_wt[i] * fct_wt[j] * abs(x_i - x_j)
+
+    out[0] = e_1 / w_T - 0.5 / (w_T**2) * e_2
+
+
 @njit(["float32(float32)", "float64(float64)"])
 def _norm_cdf(x: float) -> float:
     """Cumulative distribution function for the standard normal distribution."""
@@ -353,6 +387,7 @@ estimator_gufuncs = {
     "qd": _crps_ensemble_qd_gufunc,
     "ownrg": _owcrps_ensemble_nrg_gufunc,
     "vrnrg": _vrcrps_ensemble_nrg_gufunc,
+    "wenrg": _wecrps_ensemble_nrg_gufunc,
 }
 
 __all__ = [

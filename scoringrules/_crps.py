@@ -2,6 +2,7 @@ import typing as tp
 
 from scoringrules.backend import backends
 from scoringrules.core import crps
+from scoringrules.core.utils import multivariate_array_check
 
 if tp.TYPE_CHECKING:
     from scoringrules.core.typing import Array, ArrayLike, Backend
@@ -333,6 +334,93 @@ def vrcrps_ensemble(
     return crps.vr_ensemble(
         observations, forecasts, obs_weights, fct_weights, backend=backend
     )
+
+
+def crps_w_ensemble(
+    observations: "ArrayLike",
+    forecasts: "Array",
+    forecast_weights: "Array",
+    /,
+    axis: int = -1,
+    v_axis: tp.Optional[int] = None,
+    *,
+    sorted_ensemble: bool = False,
+    estimator: tp.Literal["nrg"] = "nrg",
+    backend: "Backend" = None,
+) -> "Array":
+    r"""Estimate the Continuous Ranked Probability Score (CRPS) for a finite ensemble of probability-weighted forecasts.
+
+    Parameters
+    ----------
+    observations: ArrayLike
+        The observed values.
+    forecasts: ArrayLike
+        The predicted forecast ensemble, where the ensemble dimension is by default
+        represented by the last axis.
+    forecast_weights: ArrayLike
+        The probability weights of the members of the forecast ensemble.
+    axis: int
+        The axis corresponding to the ensemble dimension on the forecasts array. Defaults to -2.
+    v_axis: Optional int
+        The axis corresponding to the variables dimension on the forecasts array (or the observations
+        array with an extra dimension on `axis`). If `None`, then the shape of `forecasts` should
+        match `observations` except for an extra dimension at `m_axis` for the scenarios and `fct_weights`
+        should be a 1D array of length equal to the number of forecasts in the ensemble (i.e. along `axis`).
+        If set to an integer value, then usage is as in multi-variate scoring rules.
+        Defaults to None.
+    sorted_ensemble: bool
+        Boolean indicating whether the ensemble members are already in ascending order.
+        Default is False.
+    estimator: str
+        Indicates the CRPS estimator to be used.
+    backend: str
+        The name of the backend used for computations. Defaults to 'numba' if available, else 'numpy'.
+
+    Returns
+    -------
+    crps: ArrayLike
+        The CRPS between the forecast ensemble and obs.
+
+    Examples
+    --------
+    >>> from scoringrules import crps
+    >>> crps.ensemble(pred, obs)
+    """
+    B = backends.active if backend is None else backends[backend]
+
+    if estimator != "nrg":
+        raise ValueError(
+            "Only the energy form of the estimator is available "
+            "for the probability-weighted CRPS."
+        )
+
+    if v_axis is not None:
+        observations, forecasts, forecast_weights = multivariate_array_check(
+            observations,
+            forecasts,
+            axis,
+            v_axis,
+            backend=backend,
+            fct_wt=forecast_weights,
+        )
+        forecast_weights = B.expand_dims(forecast_weights, axis=-2)
+        # multivariate_array_check puts V_AXIS to -1 and M_AXIS to -2
+        # but for crps we want V_AXIS=-1 and M_AXIS=-2.
+        # To get this switch the last two axes of forecast.
+        forecasts = B.moveaxis(forecasts, -2, -1)
+    elif axis != -1:
+        forecasts = B.moveaxis(forecasts, axis, -1)
+
+    if backend == "numba":
+        return crps.estimator_gufuncs["we" + estimator](
+            observations, forecasts, forecast_weights
+        )
+
+    observations, forecasts, forecast_weights = map(
+        B.asarray, (observations, forecasts, forecast_weights)
+    )
+
+    return crps.w_ensemble(observations, forecasts, forecast_weights, backend=backend)
 
 
 def crps_exponential(

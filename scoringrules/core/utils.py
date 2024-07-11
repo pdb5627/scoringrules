@@ -37,6 +37,7 @@ def _multivariate_shape_permute(obs, fct, m_axis, v_axis, backend=None, fct_wt=N
         fct_wt = B.moveaxis(fct_wt, (m_axis, v_axis), (_M_AXIS, _V_AXIS))
         # Squeeze out variable axis
         fct_wt = B.squeeze(fct_wt, axis=_V_AXIS)
+        return obs, fct, fct_wt
     return obs, fct
 
 
